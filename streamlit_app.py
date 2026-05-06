@@ -1,29 +1,25 @@
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
-import pandas as pd
 
 st.set_page_config(page_title="Tabungan Target", page_icon="🎯")
 st.title("🎯 Tabungan Target")
 
-# Fungsi untuk membersihkan format private key yang sering error di Streamlit Cloud
-def fix_key(key):
-    return key.replace("\\n", "\n")
+# 1. Ambil secrets dan perbaiki format private_key secara manual
+raw_creds = st.secrets["connections"]["gsheets"]
+creds_dict = dict(raw_creds)
+creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
 
 try:
-    # 1. Ambil kredensial dari secrets secara manual agar lebih aman
-    creds = dict(st.secrets["connections"]["gsheets"])
-    creds["private_key"] = fix_key(creds["private_key"])
+    # 2. Buat koneksi (Kunci perbaikannya: jangan tulis type=GSheetsConnection di sini)
+    # Kita masukkan semua data lewat **creds_dict
+    conn = st.connection("gsheets", type=GSheetsConnection, **creds_dict)
     
-    # 2. Buat koneksi dengan kredensial yang sudah diperbaiki
-    conn = st.connection("gsheets", type=GSheetsConnection, **creds)
-    
-    # 3. Baca data (Pastikan Sheet1 adalah nama tab di Google Sheets kamu)
-    df = conn.read(worksheet="Sheet1")
+    # 3. Baca data
+    df = conn.read(spreadsheet=creds_dict.get("spreadsheet"), worksheet="Sheet1")
     
     st.subheader("Daftar Tabungan")
     st.dataframe(df, use_container_width=True)
-    st.success("Koneksi Berhasil!")
+    st.success("Alhamdulillah, Koneksi Berhasil!")
 
 except Exception as e:
-    st.error(f"Terjadi kesalahan: {e}")
-    st.info("Tips: Pastikan di bagian Secrets, isi private_key diawali dengan '-----BEGIN PRIVATE KEY-----'")
+    st.error(f"Waduh, masih ada error: {e}")
